@@ -1,5 +1,5 @@
 # Dockerfile - openresty-php7
-FROM songshenzong/php
+FROM chenyongze/docker-php
 
 # Docker Build Arguments
 ARG RESTY_VERSION="1.13.6.2"
