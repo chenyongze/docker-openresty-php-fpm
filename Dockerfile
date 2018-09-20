@@ -1,5 +1,6 @@
 # Dockerfile - openresty-php7
-FROM chenyongze/docker-php
+#FROM chenyongze/docker-php
+FROM registry.cn-beijing.aliyuncs.com/icebreaking/docker-php:1.0.1
 
 # Docker Build Arguments
 ARG RESTY_VERSION="1.13.6.2"
