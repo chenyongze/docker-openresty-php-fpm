@@ -168,6 +168,11 @@ RUN apk add --no-cache --virtual .build-deps \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log \
     && rm -rf /usr/local/openresty/nginx/html/*
 
+
+# Add runtime 
+RUN mkdir -p /opt/Runtime
+RUN chmod -R 777 /opt/Runtime
+
 # Add additional binaries into PATH for convenience
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/:/usr/local/openresty/bin/
 
