@@ -7,6 +7,7 @@ LABEL maintainer="yongze.chen <sapphire.php@gmail.com>"
 # Set Timezone Environments
 ENV TIMEZONE  Asia/Shanghai
 
+# install php start
 RUN apk add --update tzdata  \
     && cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime  \
     && echo "${TIMEZONE}" > /etc/timezone  \
@@ -55,9 +56,9 @@ RUN apk add --update tzdata  \
                                 --with-png-dir=/usr/include \
                                 --with-webp-dir=/usr/include \
                                 --with-freetype-dir=/usr/include  \
-    && pecl install swoole redis xdebug mongodb memcached  \
+    && pecl install swoole redis xdebug mongodb  \
     && pecl clear-cache  \
-    && docker-php-ext-enable swoole redis xdebug mongodb memcached \
+    && docker-php-ext-enable swoole redis xdebug mongodb \
     && docker-php-ext-install pdo \
                            pdo_mysql \
                            mysqli \
@@ -81,6 +82,7 @@ RUN apk add --update tzdata  \
     && curl --location --output /usr/local/bin/phpunit https://phar.phpunit.de/phpunit.phar  \
     && chmod +x /usr/local/bin/phpunit
 
+#install php end
 
 # Docker Build Arguments
 ARG RESTY_VERSION="1.13.6.2"
