@@ -191,7 +191,7 @@ COPY conf/supervisord.conf /etc/supervisord.conf
 # copy in code
 COPY src/ /usr/local/openresty/nginx/html/
 
-WORKDIR /usr/local/openresty/nginx/html/
+WORKDIR /var/www/html
 
 EXPOSE 443 80 9000
 
