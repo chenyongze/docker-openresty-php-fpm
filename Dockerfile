@@ -180,7 +180,7 @@ ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/
 
 # Copy nginx configuration files
 COPY conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY conf/nginx.vh.default.conf /etc/nginx/conf.d/default.conf
+# COPY conf/nginx.vh.default.conf /etc/nginx/conf.d/default.conf
 
 # Copy php configuration files
 COPY conf/php/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf
