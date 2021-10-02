@@ -7,6 +7,8 @@ LABEL maintainer="yongze.chen <sapphire.php@gmail.com>"
 # Set Timezone Environments
 ENV TIMEZONE  Asia/Shanghai
 
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories 
+
 RUN apk add --update tzdata  \
     && cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime  \
     && echo "${TIMEZONE}" > /etc/timezone  \
