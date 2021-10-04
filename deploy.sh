@@ -35,7 +35,7 @@ start() {
         -v $CURL_PATH/supervisor/supervisord.conf:/etc/supervisord.conf \
         -v $CURL_PATH/supervisor/conf.d:/etc/supervisor/conf.d \
         -v /app:/app \
-        -v /app/wwwlogs:/home/www-data/wwwlogs \
+        -v /home/wwwlogs:/home/www-data/wwwlogs \
         --name shengle-o-p \
         s-o-p \
         /usr/bin/supervisord -n -c /etc/supervisord.conf
