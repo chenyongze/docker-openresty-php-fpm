@@ -1,95 +1,94 @@
-# Use Alpine Linux
-FROM php:7.2.10-fpm-alpine
+FROM php:7.3-fpm-alpine3.13
+LABEL MAINTAINER="Yongze Chen <yongze@dingtalk.com>"
 
-# Maintainer
-LABEL maintainer="yongze.chen <sapphire.php@gmail.com>"
+ENV CONTAINER_PACKAGE_URL mirrors.aliyun.com
+ENV TZ "Asia/Shanghai"
+ENV PHP_EXTENSIONS "redis mongodb swoole"
 
-# Set Timezone Environments
-ENV TIMEZONE  Asia/Shanghai
+#资源替换 国内
+RUN sed -i "s/dl-cdn.alpinelinux.org/$CONTAINER_PACKAGE_URL/g" /etc/apk/repositories
 
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories 
+RUN apk add --no-cache --repository https://mirrors.aliyun.com/alpine/edge/testing gnu-libiconv 
+ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
 
-RUN apk add --update tzdata  \
-    && cp /usr/share/zoneinfo/${TIMEZONE} /etc/localtime  \
-    && echo "${TIMEZONE}" > /etc/timezone  \
-    && apk del tzdata  \
-    && apk add --no-cache --virtual .build-deps \
-                 curl \
-                 g++ \
-                 make \
-                 autoconf \
-                 openssl-dev  \
-                 libaio  \
-                 libaio-dev \
-                 linux-headers \
-                 zlib-dev \
-    && apk add --no-cache \
-                 bash \
-                 openssh \
-                 libssl1.0 \
-                 libxslt-dev \
-                 libjpeg-turbo-dev \
-                 libwebp-dev \
-                 libpng-dev \
-                 libxml2-dev \
-                 freetype-dev \
-                 libmcrypt \
-                 freetds-dev  \
-                 libmemcached-dev  \
-                 cyrus-sasl-dev  \
+RUN apk add --no-cache --virtual .build-deps \
+    tzdata \
+    && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
+    && echo "${TZ}" > /etc/timezone \
+    && apk del .build-deps
+
+RUN apk add --no-cache --virtual .build-deps \
+    $PHPIZE_DEPS \
+    supervisor \
+    libpng \
+    curl \
+    g++ \
+    make \
+    autoconf \
+    openssl-dev  \
+    libaio  \
+    libaio-dev \
+    linux-headers \
+    zlib-dev \
+    libzip-dev \
+    bash \
+    openssh \
+    libxslt-dev \
+    libjpeg-turbo-dev \
+    libwebp-dev \
+    libpng-dev \
+    libxml2-dev \
+    freetype-dev \
+    libmcrypt \
+    freetds-dev  \
+    libmemcached-dev \
+    cyrus-sasl-dev \
     && docker-php-source extract  \
-    && docker-php-ext-configure pdo  \
-    && docker-php-ext-configure pdo_mysql  \
-    && docker-php-ext-configure mysqli  \
-    && docker-php-ext-configure opcache  \
-    && docker-php-ext-configure exif  \
-    && docker-php-ext-configure sockets  \
-    && docker-php-ext-configure soap  \
-    && docker-php-ext-configure bcmath  \
-    && docker-php-ext-configure pcntl  \
-    && docker-php-ext-configure sysvsem  \
-    && docker-php-ext-configure tokenizer  \
-    && docker-php-ext-configure zip  \
-    && docker-php-ext-configure xsl  \
-    && docker-php-ext-configure shmop  \
     && docker-php-ext-configure gd \
-                                --with-jpeg-dir=/usr/include \
-                                --with-png-dir=/usr/include \
-                                --with-webp-dir=/usr/include \
-                                --with-freetype-dir=/usr/include  \
-    && pecl install swoole redis xdebug mongodb memcached  \
-    && pecl clear-cache  \
-    && docker-php-ext-enable swoole redis xdebug mongodb memcached \
-    && docker-php-ext-install pdo \
-                           pdo_mysql \
-                           mysqli \
-                           opcache \
-                           exif \
-                           sockets \
-                           soap \
-                           bcmath \
-                           pcntl \
-                           sysvsem \
-                           tokenizer \
-                           zip \
-                           xsl \
-                           shmop \
-                           gd  \
-    && docker-php-source delete  \
-    && apk del .build-deps  \
+    --with-jpeg-dir=/usr/include \
+    --with-png-dir=/usr/include \
+    --with-webp-dir=/usr/include \
+    --with-freetype-dir=/usr/include  \
+    && docker-php-ext-install  -j5\
+    pdo_mysql \
+    mysqli \
+    opcache \
+    exif \
+    sockets \
+    soap \
+    bcmath \
+    pcntl \
+    sysvsem \
+    shmop \
+    gd \
+    && pecl install ${PHP_EXTENSIONS} \
+    && docker-php-ext-enable ${PHP_EXTENSIONS} \
     && ln -sf /dev/stdout /usr/local/var/log/php-fpm.access.log  \
-    && ln -sf /dev/stderr /usr/local/var/log/php-fpm.error.log  \
-    && curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer  \
-    && curl --location --output /usr/local/bin/phpunit https://phar.phpunit.de/phpunit.phar  \
-    && chmod +x /usr/local/bin/phpunit
+    && ln -sf /dev/stderr /usr/local/var/log/php-fpm.error.log \
+    && docker-php-source delete \
+    && pecl clear-cache
 
+
+# Copy php configuration files
+# COPY conf/php/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf
+COPY php/php.ini /usr/local/etc/php/php.ini 
+COPY php/php-fpm.d /usr/local/etc/php-fpm.d 
+
+
+# Dockerfile - alpine
+# https://github.com/openresty/docker-openresty
 
 # Docker Build Arguments
-ARG RESTY_VERSION="1.13.6.2"
-ARG RESTY_OPENSSL_VERSION="1.0.2k"
-ARG RESTY_PCRE_VERSION="8.42"
+ARG RESTY_IMAGE_BASE="alpine"
+ARG RESTY_IMAGE_TAG="3.14"
+ARG RESTY_VERSION="1.19.9.1"
+ARG RESTY_OPENSSL_VERSION="1.1.1l"
+ARG RESTY_OPENSSL_PATCH_VERSION="1.1.1f"
+ARG RESTY_OPENSSL_URL_BASE="https://www.openssl.org/source"
+ARG RESTY_PCRE_VERSION="8.44"
 ARG RESTY_J="1"
 ARG RESTY_CONFIG_OPTIONS="\
+    --with-compat \
     --with-file-aio \
     --with-http_addition_module \
     --with-http_auth_request_module \
@@ -120,74 +119,134 @@ ARG RESTY_CONFIG_OPTIONS="\
     --with-threads \
     "
 ARG RESTY_CONFIG_OPTIONS_MORE=""
+ARG RESTY_LUAJIT_OPTIONS="--with-luajit-xcflags='-DLUAJIT_NUMMODE=2 -DLUAJIT_ENABLE_LUA52COMPAT'"
+
+ARG RESTY_ADD_PACKAGE_BUILDDEPS=""
+ARG RESTY_ADD_PACKAGE_RUNDEPS=""
+ARG RESTY_EVAL_PRE_CONFIGURE=""
+ARG RESTY_EVAL_POST_MAKE=""
 
 # These are not intended to be user-specified
-ARG _RESTY_CONFIG_DEPS="--with-openssl=/tmp/openssl-${RESTY_OPENSSL_VERSION} --with-pcre=/tmp/pcre-${RESTY_PCRE_VERSION}"
+ARG _RESTY_CONFIG_DEPS="--with-pcre \
+    --with-cc-opt='-DNGX_LUA_ABORT_AT_PANIC -I/usr/local/openresty/pcre/include -I/usr/local/openresty/openssl/include' \
+    --with-ld-opt='-L/usr/local/openresty/pcre/lib -L/usr/local/openresty/openssl/lib -Wl,-rpath,/usr/local/openresty/pcre/lib:/usr/local/openresty/openssl/lib' \
+    "
 
-# 1) Install apk dependencies
-# 2) Download and untar OpenSSL, PCRE, and OpenResty
-# 3) Build OpenResty
-# 4) Cleanup
+LABEL resty_image_base="${RESTY_IMAGE_BASE}"
+LABEL resty_image_tag="${RESTY_IMAGE_TAG}"
+LABEL resty_version="${RESTY_VERSION}"
+LABEL resty_openssl_version="${RESTY_OPENSSL_VERSION}"
+LABEL resty_openssl_patch_version="${RESTY_OPENSSL_PATCH_VERSION}"
+LABEL resty_openssl_url_base="${RESTY_OPENSSL_URL_BASE}"
+LABEL resty_pcre_version="${RESTY_PCRE_VERSION}"
+LABEL resty_config_options="${RESTY_CONFIG_OPTIONS}"
+LABEL resty_config_options_more="${RESTY_CONFIG_OPTIONS_MORE}"
+LABEL resty_config_deps="${_RESTY_CONFIG_DEPS}"
+LABEL resty_add_package_builddeps="${RESTY_ADD_PACKAGE_BUILDDEPS}"
+LABEL resty_add_package_rundeps="${RESTY_ADD_PACKAGE_RUNDEPS}"
+LABEL resty_eval_pre_configure="${RESTY_EVAL_PRE_CONFIGURE}"
+LABEL resty_eval_post_make="${RESTY_EVAL_POST_MAKE}"
+
 
 RUN apk add --no-cache --virtual .build-deps \
-        build-base \
-        curl \
-        gd-dev \
-        geoip-dev \
-        libxslt-dev \
-        linux-headers \
-        make \
-        perl-dev \
-        readline-dev \
-        zlib-dev \
+    build-base \
+    coreutils \
+    curl \
+    gd-dev \
+    geoip-dev \
+    libxslt-dev \
+    linux-headers \
+    make \
+    perl-dev \
+    readline-dev \
+    zlib-dev \
+    ${RESTY_ADD_PACKAGE_BUILDDEPS} \
     && apk add --no-cache \
-        gd \
-        geoip \
-        libgcc \
-        libxslt \
-        zlib \
-        supervisor \
-        bash \
+    gd \
+    geoip \
+    libgcc \
+    libxslt \
+    zlib \
+    ${RESTY_ADD_PACKAGE_RUNDEPS} \
     && cd /tmp \
-    && curl -fSL https://www.openssl.org/source/openssl-${RESTY_OPENSSL_VERSION}.tar.gz -o openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
+    && if [ -n "${RESTY_EVAL_PRE_CONFIGURE}" ]; then eval $(echo ${RESTY_EVAL_PRE_CONFIGURE}); fi \
+    && cd /tmp \
+    && curl -fSL "${RESTY_OPENSSL_URL_BASE}/openssl-${RESTY_OPENSSL_VERSION}.tar.gz" -o openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
     && tar xzf openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
+    && cd openssl-${RESTY_OPENSSL_VERSION} \
+    && if [ $(echo ${RESTY_OPENSSL_VERSION} | cut -c 1-5) = "1.1.1" ] ; then \
+    echo 'patching OpenSSL 1.1.1 for OpenResty' \
+    && curl -s https://raw.githubusercontent.com/openresty/openresty/master/patches/openssl-${RESTY_OPENSSL_PATCH_VERSION}-sess_set_get_cb_yield.patch | patch -p1 ; \
+    fi \
+    && if [ $(echo ${RESTY_OPENSSL_VERSION} | cut -c 1-5) = "1.1.0" ] ; then \
+    echo 'patching OpenSSL 1.1.0 for OpenResty' \
+    && curl -s https://raw.githubusercontent.com/openresty/openresty/ed328977028c3ec3033bc25873ee360056e247cd/patches/openssl-1.1.0j-parallel_build_fix.patch | patch -p1 \
+    && curl -s https://raw.githubusercontent.com/openresty/openresty/master/patches/openssl-${RESTY_OPENSSL_PATCH_VERSION}-sess_set_get_cb_yield.patch | patch -p1 ; \
+    fi \
+    && ./config \
+    no-threads shared zlib -g \
+    enable-ssl3 enable-ssl3-method \
+    --prefix=/usr/local/openresty/openssl \
+    --libdir=lib \
+    -Wl,-rpath,/usr/local/openresty/openssl/lib \
+    && make -j${RESTY_J} \
+    && make -j${RESTY_J} install_sw \
+    && cd /tmp \
     && curl -fSL https://ftp.pcre.org/pub/pcre/pcre-${RESTY_PCRE_VERSION}.tar.gz -o pcre-${RESTY_PCRE_VERSION}.tar.gz \
     && tar xzf pcre-${RESTY_PCRE_VERSION}.tar.gz \
-    && curl -fSL https://openresty.org/download/openresty-${RESTY_VERSION}.tar.gz -o openresty-${RESTY_VERSION}.tar.gz \
-    && tar xzf openresty-${RESTY_VERSION}.tar.gz \
-    && cd /tmp/openresty-${RESTY_VERSION} \
-    && ./configure -j${RESTY_J} ${_RESTY_CONFIG_DEPS} ${RESTY_CONFIG_OPTIONS} ${RESTY_CONFIG_OPTIONS_MORE} \
+    && cd /tmp/pcre-${RESTY_PCRE_VERSION} \
+    && ./configure \
+    --prefix=/usr/local/openresty/pcre \
+    --disable-cpp \
+    --enable-jit \
+    --enable-utf \
+    --enable-unicode-properties \
     && make -j${RESTY_J} \
     && make -j${RESTY_J} install \
     && cd /tmp \
+    && curl -fSL https://openresty.org/download/openresty-${RESTY_VERSION}.tar.gz -o openresty-${RESTY_VERSION}.tar.gz \
+    && tar xzf openresty-${RESTY_VERSION}.tar.gz \
+    && cd /tmp/openresty-${RESTY_VERSION} \
+    && eval ./configure -j${RESTY_J} ${_RESTY_CONFIG_DEPS} ${RESTY_CONFIG_OPTIONS} ${RESTY_CONFIG_OPTIONS_MORE} ${RESTY_LUAJIT_OPTIONS} \
+    && make -j${RESTY_J} \
+    && make -j${RESTY_J} install \
+    && cd /tmp \
+    && if [ -n "${RESTY_EVAL_POST_MAKE}" ]; then eval $(echo ${RESTY_EVAL_POST_MAKE}); fi \
     && rm -rf \
-        openssl-${RESTY_OPENSSL_VERSION} \
-        openssl-${RESTY_OPENSSL_VERSION}.tar.gz \
-        openresty-${RESTY_VERSION}.tar.gz openresty-${RESTY_VERSION} \
-        pcre-${RESTY_PCRE_VERSION}.tar.gz pcre-${RESTY_PCRE_VERSION} \
+    openssl-${RESTY_OPENSSL_VERSION}.tar.gz openssl-${RESTY_OPENSSL_VERSION} \
+    pcre-${RESTY_PCRE_VERSION}.tar.gz pcre-${RESTY_PCRE_VERSION} \
+    openresty-${RESTY_VERSION}.tar.gz openresty-${RESTY_VERSION} \
     && apk del .build-deps \
+    && mkdir -p /var/run/openresty \
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
-    && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log \
-    && rm -rf /usr/local/openresty/nginx/html/*
+    && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log
 
 # Add additional binaries into PATH for convenience
-ENV PATH=$PATH:/usr/local/openresty/luajit/bin/:/usr/local/openresty/nginx/sbin/:/usr/local/openresty/bin/
+ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/usr/local/openresty/bin
 
-# Copy nginx configuration files
-COPY conf/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
-COPY conf/nginx.vh.default.conf /etc/nginx/conf.d/default.conf
+# # Copy nginx configuration files
+# COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
+# COPY nginx.vh.default.conf /etc/nginx/conf.d/default.conf
+COPY nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf 
+COPY nginx/conf.d /etc/nginx/conf.d 
 
-# Copy php configuration files
-COPY conf/php/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf
+# CMD ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]
+
+# # Use SIGQUIT instead of default SIGTERM to cleanly drain requests
+# # See https://github.com/openresty/docker-openresty/blob/master/README.md#tips--pitfalls
+# STOPSIGNAL SIGQUIT
+
 
 # Copy supervisord configuration file
-COPY conf/supervisord.conf /etc/supervisord.conf
+# COPY conf/supervisord.conf /etc/supervisord.conf
+COPY supervisor/supervisord.conf /etc/supervisord.conf
+COPY supervisor/conf.d /etc/supervisor/conf.d
 
-# copy in code
-COPY src/ /usr/local/openresty/nginx/html/
+COPY ./crontab /tmp/crontab
+RUN crontab /tmp/crontab/test.crontab
 
-WORKDIR /usr/local/openresty/nginx/html/
+WORKDIR /usr/local/openresty/nginx/html
 
-EXPOSE 443 80 9000
+EXPOSE 80 443 9000
 
 CMD ["/usr/bin/supervisord", "-n","-c", "/etc/supervisord.conf"]
