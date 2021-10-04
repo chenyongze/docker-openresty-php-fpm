@@ -14,12 +14,10 @@ ENV LD_PRELOAD /usr/lib/preloadable_libiconv.so php
 RUN apk add --no-cache --virtual .build-deps \
     tzdata \
     && cp /usr/share/zoneinfo/${TZ} /etc/localtime \
-    && echo "${TZ}" > /etc/timezone \
-    && apk del .build-deps
+    && echo "${TZ}" > /etc/timezone
 
 RUN apk add --no-cache --virtual .build-deps \
     $PHPIZE_DEPS \
-    supervisor \
     libpng \
     curl \
     g++ \
@@ -67,7 +65,6 @@ RUN apk add --no-cache --virtual .build-deps \
     && ln -sf /dev/stderr /usr/local/var/log/php-fpm.error.log \
     && docker-php-source delete \
     && pecl clear-cache
-
 
 # Copy php configuration files
 # COPY conf/php/etc/php-fpm.d/www.conf /usr/local/etc/php-fpm.d/www.conf
@@ -221,6 +218,11 @@ RUN apk add --no-cache --virtual .build-deps \
     && ln -sf /dev/stdout /usr/local/openresty/nginx/logs/access.log \
     && ln -sf /dev/stderr /usr/local/openresty/nginx/logs/error.log
 
+RUN apk add --no-cache \
+    supervisor \
+    libstdc++ \
+    cyrus-sasl
+
 # Add additional binaries into PATH for convenience
 ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/usr/local/openresty/bin
 
@@ -228,7 +230,9 @@ ENV PATH=$PATH:/usr/local/openresty/luajit/bin:/usr/local/openresty/nginx/sbin:/
 # COPY nginx.conf /usr/local/openresty/nginx/conf/nginx.conf
 # COPY nginx.vh.default.conf /etc/nginx/conf.d/default.conf
 COPY nginx/nginx.conf /usr/local/openresty/nginx/conf/nginx.conf 
-COPY nginx/conf.d /etc/nginx/conf.d 
+COPY nginx/conf.d /etc/nginx/conf.d
+COPY ./src /usr/local/openresty/nginx/html
+RUN mkdir -p /home/www-data/wwwlogs
 
 # CMD ["/usr/local/openresty/bin/openresty", "-g", "daemon off;"]
 
@@ -250,3 +254,4 @@ WORKDIR /usr/local/openresty/nginx/html
 EXPOSE 80 443 9000
 
 CMD ["/usr/bin/supervisord", "-n","-c", "/etc/supervisord.conf"]
+# ENTRYPOINT ["/usr/bin/supervisord", "-n","-c", "/etc/supervisord.conf"]

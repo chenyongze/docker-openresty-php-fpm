@@ -1,0 +1,39 @@
+导出镜像
+
+docker export shengle-o-p > shengle-o-p.tar
+
+导入镜像
+
+docker import shengle-o-p.tar shengle-o-p
+
+
+启动镜像
+
+docker run -it -d  -p 80:80 -p 443:443  -v /app/sldc-image-deploy/php/php-fpm.d:/usr/local/etc/php-fpm.d -v /app/sldc-image-deploy/nginx/conf.d:/etc/nginx/conf.d -v /app/wwwlogs:/home/www-data/wwwlogs -v /data/wwwroot:/var/www/html --name shengle-o-p s-o-p /usr/bin/supervisord -n -c /etc/supervisord.conf
+
+
+# 测试构建
+# 构建
+docker stop sop-test && docker rm sop-test && docker build -t yongze/sop-test . && docker run -it --name sop-test yongze/sop-test sh
+
+docker stop sop-test  && docker rm sop-test && docker run -it --name sop-test yongze/sop-test sh
+
+
+
+docker run -it --name sop-test yongze/sop-test sh
+
+
+docker build -t s-o-p .
+
+
+# 之前的 
+s-o-p   latest               be85912a9dc5        2 hours ago         229 MB
+nginx version: openresty/1.19.3.2
+PHP 7.2.10 (cli) (built: Sep 15 2018 02:49:26) ( NTS )
+
+# 之后的
+
+
+# 运行
+# 临时
+docker run -it yongze/sop-test sh
